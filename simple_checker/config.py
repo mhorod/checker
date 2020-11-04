@@ -3,7 +3,10 @@ class TestConfig:
                  sha):
         self.program = program
         self.test_dir = test_dir
-        self.groups = groups
+        if groups is not None:
+            self.groups = groups
+        else:
+            self.groups = [".*"]
         self.break_on_error = break_on_error
         self.timeout = timeout
         self.sha = sha

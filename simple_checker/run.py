@@ -34,15 +34,25 @@ def run_tests(config):
                 groups.add(group)
 
     for group in groups:
-        group_path = os.path.join(config.test_dir, group)
-        run_test_group(group_path, config)
+        run_test_group(group, config)
 
 
-def get_groups_in_dir_matching(test_dir, pattern):
+def is_final_group(group_dir):
+    dirs = os.listdir(group_dir)
+    if len(dirs) == 0 or 'in' in dirs:
+        return True
+    return False
+
+
+def expand_group(group_dir, pattern):
+    return get_groups_in_dir_matching(group_dir, pattern)
+
+
+def get_groups_in_dir_matching(directory, pattern):
     re_pattern = re.compile(pattern)
-    for group in get_groups_in_dir(test_dir):
+    for group in get_groups_in_dir(directory):
         if re_pattern.fullmatch(group):
-            yield group
+            yield os.path.join(directory, group)
 
 
 def get_groups_in_dir(test_dir):
@@ -105,6 +115,11 @@ class OutputChecksum:
 
 def run_test_group(group_path, config):
     print(f"Group: {group_path}")
+    if not is_final_group(group_path):
+        for group in expand_group(group_path, ".*"):
+            run_test_group(group, config)
+        return
+
     input_provider = input_provider_from_config(group_path, config)
     output_handler = output_handler_from_config(group_path, config)
 
