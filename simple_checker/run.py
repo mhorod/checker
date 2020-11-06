@@ -4,6 +4,7 @@ import difflib
 import hashlib
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -124,6 +125,21 @@ class OutputChecksum:
         print(f"sha-256 checksum: {checksum}")
 
 
+class TestProgress:
+    def __init__(self, total):
+        self.total = total
+        self.current = 0
+
+    def next(self):
+        self.current += 1
+
+    def size(self):
+        return 4 + 2 * len(str(self.total))
+
+    def __str__(self):
+        return f"{str(self.current).rjust(len(str(self.total)))} / {self.total}"
+
+
 def run_test_group(group_path, config):
     print(f"Group: {group_path}")
     if not is_final_group(group_path):
@@ -139,7 +155,14 @@ def run_test_group(group_path, config):
         print_error("Error: empty group")
         return
 
-    progress_bar = ProgressBar(test_count, fill='#')
+    size = shutil.get_terminal_size()
+    test_progress = TestProgress(test_count)
+    progress_bar = ProgressBar(test_count,
+                               test_progress,
+                               fill='#',
+                               length=min(
+                                   80,
+                                   size.columns - 10 - test_progress.size()))
 
     group_result = GroupResult()
     for i in range(test_count):
@@ -160,7 +183,8 @@ def run_test_group(group_path, config):
             if config.break_on_error:
                 break
 
-        progress_bar.print_progress_bar(i + 1)
+        test_progress.next()
+        progress_bar.next()
 
     print(group_result.summary())
     output_handler.summarize()
