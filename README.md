@@ -13,6 +13,11 @@ Simply run
 ```
 python3 setup.py
 ```
+This will install dependencies. 
+
+In order to make the program work you have to put all the files in tested project directory.
+
+If you want to access the checker from anywhere consider adding alias to your command line
 
 ## Usage
 
@@ -33,6 +38,7 @@ tests/
 ```
 Directory structure in group is ignored.
 Instead, checker requires `.in` and `.out` files to be present.
+
 The only naming requirement is that lexicographic sorting should preserve matching.
 
 ### Configuration
@@ -59,12 +65,12 @@ tests/
 ```
 If you want to run program `./first` on all `tiny` tests with `0.5s` timeout:
 ```
-python3 run-tests.py -p first -g tiny.* -t 0.5
+python3 run-tests.py -p ./first -g tiny.* -t 0.5
 ```
 If you have no access to a verified output and you want to check program's behavior
 you can run
 ```
-python3 run-tests.py -p first -g tiny.* -t 0.5 --sha
+python3 run-tests.py -p ./first -g tiny.* -t 0.5 --sha
 ```
 The checksum can be then used to compare all answers at once without the need to generate (possibly large) output.
 
