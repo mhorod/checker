@@ -77,6 +77,10 @@ class InputFromFiles:
         return len(self.ins)
 
 
+def remove_whitespace(string):
+    return "".join(string.split())
+
+
 class OutputFromFiles:
     def __init__(self, outs):
         self.outs = outs
@@ -84,13 +88,20 @@ class OutputFromFiles:
 
     def handle_output(self, output_filename):
         status = TestResult.OK
-        lines = open(output_filename, "r").readlines()
-        correct_lines = open(self.outs[self.next_index], "r").readlines()
+        lines = self.read_lines(output_filename)
+        correct_lines = self.read_lines(self.outs[self.next_index])
+
         diff = difflib.unified_diff(lines, correct_lines)
         for line in diff:
             if line: status = TestResult.ANS
         self.next_index += 1
         return status
+
+    def read_lines(self, filename):
+        return [
+            remove_whitespace(line)
+            for line in open(filename, "r").readlines()
+        ]
 
     def summarize(self):
         pass
