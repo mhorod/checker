@@ -1,8 +1,8 @@
-import argparse
+"""
+Core of the checker used to run the tests
+"""
+
 import configparser
-import difflib
-import hashlib
-import io
 import os
 import re
 import shutil
@@ -13,33 +13,35 @@ import time
 import termcolor
 from console_progressbar import ProgressBar
 
-from simple_checker.config import *
-from simple_checker.result import *
-from simple_checker.cli import *
+from simple_checker import cli, config, result, testio
 
 
-def run_tests(config):
+def run_tests(test_config: config.TestConfig) -> None:
+    """Run tests with specification given in config"""
+
     print("Testing config:")
-    print(config)
+    print(test_config)
     print()
 
-    if not os.path.isdir(config.test_dir):
-        print_error(f"No directory `{config.test_dir}`")
+    if not os.path.isdir(test_config.test_dir):
+        print_error(f"No directory `{test_config.test_dir}`")
         return
 
-    if config.groups is None:
-        groups = get_groups_in_dir(config.test_dir)
+    if test_config.groups is None:
+        groups = get_groups_in_dir(test_config.test_dir)
     else:
         groups = set()
-        for pattern in config.groups:
-            for group in get_groups_in_dir_matching(config.test_dir, pattern):
+        for pattern in test_config.groups:
+            for group in get_groups_in_dir_matching(test_config.test_dir,
+                                                    pattern):
                 groups.add(group)
 
     for group in groups:
-        run_test_group(group, config)
+        run_test_group(group, test_config)
 
 
-def is_final_group(group_dir):
+def is_final_group(group_dir) -> bool:
+    """Checks if group does not contain any directories other than in or out"""
     dirs = os.listdir(group_dir)
     if len(dirs) == 0 or 'in' in dirs:
         return True
@@ -47,170 +49,102 @@ def is_final_group(group_dir):
 
 
 def expand_group(group_dir, pattern):
+    """Returns paths of subgroups in group_dir"""
     return get_groups_in_dir_matching(group_dir, pattern)
 
 
 def get_groups_in_dir_matching(directory, pattern):
+    """Returns generator of only those groups in directory that match pattern"""
     re_pattern = re.compile(pattern)
     for group in get_groups_in_dir(directory):
         if re_pattern.fullmatch(group):
             yield os.path.join(directory, group)
 
 
-def get_groups_in_dir(test_dir):
-    for d in os.listdir(test_dir):
-        yield d
-
-
-class InputFromFiles:
-    def __init__(self, ins):
-        self.ins = ins
-        self.next_index = 0
-
-    def has_test(self):
-        return self.next_index < len(self.ins)
-
-    def next(self):
-        filename = self.ins[self.next_index]
-        self.next_index += 1
-        return open(filename, "r")
-
-    def test_count(self):
-        return len(self.ins)
-
-
-def remove_whitespace(string):
-    return "".join(string.split())
-
-
-class OutputFromFiles:
-    def __init__(self, outs):
-        self.outs = outs
-        self.next_index = 0
-        self.stream = io.TextIOWrapper(io.BytesIO(), line_buffering=True)
-
-    def handle_output(self):
-        status = TestResult.OK
-        self.stream.seek(0)
-        lines = [remove_whitespace(line) for line in self.stream.readlines()]
-        self.stream.seek(0)
-        self.stream.truncate(0)
-        correct_lines = self.read_lines(self.outs[self.next_index])
-
-        diff = difflib.unified_diff(lines, correct_lines)
-        for line in diff:
-            if line: status = TestResult.ANS
-
-        self.next_index += 1
-        return status
-
-    def read_lines(self, filename):
-        return [
-            remove_whitespace(line)
-            for line in open(filename, "r").readlines()
-        ]
-
-    def summarize(self):
-        pass
-
-
-class OutputChecksum:
-    def __init__(self):
-        self.checksum = hashlib.sha256()
-
-    def handle_output(self, output_filename):
-        buf_size = 1024
-        with open(output_filename, 'r') as f:
-            while buf := f.read(buf_size):
-                buf = "".join(buf.split())
-                self.checksum.update(bytes(buf, "ascii"))
-        return TestResult.OK
-
-    def summarize(self):
-        checksum = self.checksum.hexdigest()[:8]
-        print(f"sha-256 checksum: {checksum}")
+def get_groups_in_dir(directory):
+    """Return generator of groups in directory"""
+    for group in os.listdir(directory):
+        yield group
 
 
 class TestProgress:
+    """Keeps track of executed tests"""
     def __init__(self, total):
         self.total = total
         self.current = 0
+        self.progress_bar = init_progress_bar(self)
 
-    def next(self):
-        self.current += 1
+    def update(self, progress) -> None:
+        """Increases the counter"""
+        self.current = progress
+        self.progress_bar.next()
 
-    def size(self):
+    def display_size(self) -> int:
+        """Returns count of characters used to display progress"""
         return 4 + 2 * len(str(self.total))
 
     def __str__(self):
         return f"{str(self.current).rjust(len(str(self.total)))} / {self.total}"
 
 
-def run_test_group(group_path, config):
+def init_progress_bar(test_progress):
+    """Create progressbar for test_progress"""
+    size = shutil.get_terminal_size()
+    bar_length = min(80, size.columns - 10 - test_progress.display_size())
+    return ProgressBar(test_progress.total,
+                       test_progress,
+                       fill='#',
+                       length=bar_length)
+
+
+def run_test_group(group_path, test_config):
+    """Run tests from given group"""
     print(f"Group: {group_path}")
     if not is_final_group(group_path):
         for group in expand_group(group_path, ".*"):
-            run_test_group(group, config)
+            run_test_group(group, test_config)
         return
 
-    input_provider = input_provider_from_config(group_path, config)
-    output_handler = output_handler_from_config(group_path, config)
+    test_input = test_input_from_config(group_path, test_config)
+    test_output = test_output_from_config(group_path, test_config)
 
-    test_count = input_provider.test_count()
+    test_count = test_input.test_count()
     if test_count == 0:
         print_error("Error: empty group")
         return
 
-    size = shutil.get_terminal_size()
     test_progress = TestProgress(test_count)
-    progress_bar = ProgressBar(test_count,
-                               test_progress,
-                               fill='#',
-                               length=min(
-                                   80,
-                                   size.columns - 10 - test_progress.size()))
-
-    group_result = GroupResult()
+    group_result = result.GroupResult()
     for i in range(test_count):
-        input_stream = input_provider.next()
-        output_stream = output_handler.stream
-
-        test_result = run_test(config.program, input_stream, output_stream,
-                               config.timeout)
-
-        answer_status = output_handler.handle_output()
-
-        if test_result.status == TestResult.OK:
-            test_result.status = answer_status
-
+        test_result = run_test(test_config.program, test_input, test_output,
+                               test_config.timeout)
         group_result.update(test_result)
 
-        if test_result.status != TestResult.OK:
+        if test_result.status != result.TestResult.Status.OK:
             print(test_result.status)
-            message = f"{test_result.status_name} on {in_file}"
+            message = f"{test_result.status_name} on {test_input.current_name()}"
             print(termcolor.colored(message, "red"))
-            if config.break_on_error:
+            if test_config.break_on_error:
                 break
 
-        test_progress.next()
-        progress_bar.next()
+        test_progress.update(i)
 
     print(group_result.summary())
-    output_handler.summarize()
+    test_output.summarize()
     print()
 
 
-def input_provider_from_config(group_path, config):
+def test_input_from_config(group_path, test_config) -> testio.TestInput:
     ins = sorted(all_files_with_extension(group_path, '.in'))
-    return InputFromFiles(ins)
+    return testio.InputFromFiles(ins)
 
 
-def output_handler_from_config(group_path, config):
-    if config.sha:
-        return OutputChecksum()
+def test_output_from_config(group_path, test_config) -> testio.TestOutput:
+    if test_config.sha:
+        return testio.OutputChecksum()
     else:
         outs = sorted(all_files_with_extension(group_path, '.out'))
-        return OutputFromFiles(outs)
+        return testio.OutputFromFiles(outs)
 
 
 def print_error(message):
@@ -228,57 +162,60 @@ def all_files_with_extension(directory, extension):
                 yield os.path.join(root, f)
 
 
-def run_test(program, input_stream, output_stream, timeout=None):
+def run_test(program,
+             test_input: testio.TestInput,
+             test_output: testio.TestOutput,
+             timeout=None) -> result.TestResult:
     try:
         run_time = time.time()
         run_result = subprocess.run(program,
-                                    stdin=input_stream,
+                                    stdin=test_input.next(),
                                     stdout=subprocess.PIPE,
                                     check=True,
                                     timeout=timeout)
 
-        output_stream.write(str(run_result.stdout, encoding="utf-8"))
+        status = test_output.handle_output(
+            str(run_result.stdout, encoding="utf-8"))
         run_time = time.time() - run_time
     except subprocess.CalledProcessError:
-        return TestResult(TestResult.RTE, run_time)
+        return result.TestResult(result.TestResult.Status.RTE, run_time)
     except subprocess.TimeoutExpired:
-        return TestResult(TestResult.TLE, timeout)
-    except Exception as e:
-        print(e)
-    return TestResult(TestResult.OK, run_time)
+        return result.TestResult(result.TestResult.Status.TLE, timeout)
+    except Exception as exception:
+        print(exception)
+    return result.TestResult(status, run_time)
 
 
 def config_from_file(filename):
     print("Currently not supported")
     sys.exit(0)
-    config = configparser.ConfigParser()
-    config.read(filename)
+    config_parser = configparser.ConfigParser()
+    config_parser.read(filename)
     default = {
         'program': './main',
         'test_dir': 'tests',
         'groups': None,
     }
-    if not "TestConfig" in config:
+    if "TestConfig" not in config_parser:
         print_error("Invalid config")
-    common_config = config["common"]
+    common_config = config_parser["common"]
     for key in common_config:
         default[key] = common_config
 
-    return TestConfig('', '', '', '', None, None)
+    return config.TestConfig('', '', '', '', None, None)
 
 
 def config_from_args(args):
-
-    return TestConfig(args.p, args.d, args.g, args.b == 'true', args.t,
-                      args.sha)
+    return config.TestConfig(args.p, args.d, args.g, args.b == 'true', args.t,
+                             args.sha)
 
 
 def from_cli():
-    args = get_parsed_args()
+    args = cli.get_parsed_args()
     #if args.c == None:
-    config = config_from_args(args)
+    test_config = config_from_args(args)
     #else:
     #    print(f"Loading config from file {args.c}")
     #    print("Input flags will be ignored")
     #    config = config_from_file(args.c)
-    run_tests(config)
+    run_tests(test_config)

@@ -1,21 +1,24 @@
+import enum
 import statistics
 
 import termcolor
 
 
 class TestResult:
-    OK = 0
-    ANS = 1
-    TLE = 2
-    RTE = 3
+    class Status(enum.IntEnum):
+        OK = 0
+        ANS = 1
+        TLE = 2
+        RTE = 3
+
     status_names = ["OK", "ANS", "TLE", "RTE"]
 
-    def __init__(self, status, time):
+    def __init__(self, status: Status, time: float):
         self.status = status
         self.time = time
 
     @property
-    def status_name(self):
+    def status_name(self) -> str:
         return TestResult.status_names[self.status]
 
 
