@@ -2,6 +2,7 @@ import argparse
 import configparser
 import difflib
 import hashlib
+import io
 import os
 import re
 import shutil
@@ -72,7 +73,7 @@ class InputFromFiles:
     def next(self):
         filename = self.ins[self.next_index]
         self.next_index += 1
-        return filename
+        return open(filename, "r")
 
     def test_count(self):
         return len(self.ins)
@@ -86,15 +87,20 @@ class OutputFromFiles:
     def __init__(self, outs):
         self.outs = outs
         self.next_index = 0
+        self.stream = io.TextIOWrapper(io.BytesIO(), line_buffering=True)
 
-    def handle_output(self, output_filename):
+    def handle_output(self):
         status = TestResult.OK
-        lines = self.read_lines(output_filename)
+        self.stream.seek(0)
+        lines = [remove_whitespace(line) for line in self.stream.readlines()]
+        self.stream.seek(0)
+        self.stream.truncate(0)
         correct_lines = self.read_lines(self.outs[self.next_index])
 
         diff = difflib.unified_diff(lines, correct_lines)
         for line in diff:
             if line: status = TestResult.ANS
+
         self.next_index += 1
         return status
 
@@ -166,11 +172,14 @@ def run_test_group(group_path, config):
 
     group_result = GroupResult()
     for i in range(test_count):
-        in_file = input_provider.next()
-        target_file = 'tmp.out'
-        test_result = run_test(config.program, in_file, 'tmp.out',
+        input_stream = input_provider.next()
+        output_stream = output_handler.stream
+
+        test_result = run_test(config.program, input_stream, output_stream,
                                config.timeout)
-        answer_status = output_handler.handle_output(target_file)
+
+        answer_status = output_handler.handle_output()
+
         if test_result.status == TestResult.OK:
             test_result.status = answer_status
 
@@ -219,14 +228,16 @@ def all_files_with_extension(directory, extension):
                 yield os.path.join(root, f)
 
 
-def run_test(program, in_file, output_target, timeout=None):
+def run_test(program, input_stream, output_stream, timeout=None):
     try:
         run_time = time.time()
-        subprocess.run(program,
-                       stdin=open(in_file, 'r'),
-                       stdout=open(output_target, 'w'),
-                       check=True,
-                       timeout=timeout)
+        run_result = subprocess.run(program,
+                                    stdin=input_stream,
+                                    stdout=subprocess.PIPE,
+                                    check=True,
+                                    timeout=timeout)
+
+        output_stream.write(str(run_result.stdout, encoding="utf-8"))
         run_time = time.time() - run_time
     except subprocess.CalledProcessError:
         return TestResult(TestResult.RTE, run_time)
