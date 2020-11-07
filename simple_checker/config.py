@@ -1,6 +1,6 @@
 class TestConfig:
     def __init__(self, program, test_dir, groups, break_on_error, timeout,
-                 sha):
+                 timer, sha):
         self.program = program
         self.test_dir = test_dir
         if groups is not None:
@@ -9,6 +9,7 @@ class TestConfig:
             self.groups = [".*"]
         self.break_on_error = break_on_error
         self.timeout = timeout
+        self.timer = timer
         self.sha = sha
 
     def group_string(self):
@@ -31,7 +32,11 @@ class TestConfig:
                   f"groups: {self.group_string()}\n" +
                   f"break on error: {str(self.break_on_error)}\n" +
                   f"timeout: {self.timeout_string()}")
+
         if self.sha:
             result += '\n' + "Calculating SHA-256 instead of veryfying."
+
+        if self.timer:
+            result += '\n' + "Reading execution time from stderr"
 
         return result

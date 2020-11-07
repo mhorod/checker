@@ -117,7 +117,7 @@ def run_test_group(group_path, test_config):
     group_result = result.GroupResult()
     for i in range(test_count):
         test_result = run_test(test_config.program, test_input, test_output,
-                               test_config.timeout)
+                               test_config.timeout, test_config.timer)
         group_result.update(test_result)
 
         if test_result.status != result.TestResult.Status.OK:
@@ -165,18 +165,27 @@ def all_files_with_extension(directory, extension):
 def run_test(program,
              test_input: testio.TestInput,
              test_output: testio.TestOutput,
-             timeout=None) -> result.TestResult:
+             timeout=None,
+             timer=False) -> result.TestResult:
     try:
         run_time = time.time()
         run_result = subprocess.run(program,
                                     stdin=test_input.next(),
                                     stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
                                     check=True,
                                     timeout=timeout)
 
+        run_time = time.time() - run_time
         status = test_output.handle_output(
             str(run_result.stdout, encoding="utf-8"))
-        run_time = time.time() - run_time
+
+        if timer:
+            stderr = str(run_result.stderr, "ascii")
+            for line in stderr.split('\n'):
+                if "Time:" in line:
+                    run_time = float(line.split(' ')[1])
+
     except subprocess.CalledProcessError:
         return result.TestResult(result.TestResult.Status.RTE, run_time)
     except subprocess.TimeoutExpired:
@@ -207,7 +216,7 @@ def config_from_file(filename):
 
 def config_from_args(args):
     return config.TestConfig(args.p, args.d, args.g, args.b == 'true', args.t,
-                             args.sha)
+                             args.timer, args.sha)
 
 
 def from_cli():

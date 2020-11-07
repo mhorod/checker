@@ -38,6 +38,10 @@ def get_parsed_args():
                         type=float,
                         help='time limit after which TLE is raised')
 
+    parser.add_argument(
+        '--timer',
+        help="run program will have a line 'Time: [float]' on stderr",
+        action='store_true')
     parser.add_argument('--sha',
                         help='calculate sha-256 instead of veryfying',
                         action='store_true')
