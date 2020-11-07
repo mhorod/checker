@@ -127,7 +127,7 @@ def run_test_group(group_path, test_config):
             if test_config.break_on_error:
                 break
 
-        test_progress.update(i)
+        test_progress.update(i + 1)
 
     print(group_result.summary())
     test_output.summarize()
