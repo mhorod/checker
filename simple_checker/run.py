@@ -121,7 +121,6 @@ def run_test_group(group_path, test_config):
         group_result.update(test_result)
 
         if test_result.status != result.TestResult.Status.OK:
-            print(test_result.status)
             message = f"{test_result.status_name} on {test_input.current_name()}"
             print(termcolor.colored(message, "red"))
             if test_config.break_on_error:
@@ -142,6 +141,8 @@ def test_input_from_config(group_path, test_config) -> testio.TestInput:
 def test_output_from_config(group_path, test_config) -> testio.TestOutput:
     if test_config.sha:
         return testio.OutputChecksum()
+    elif test_config.verifier is not None:
+        return testio.OutputToVerifier(test_config.verifier)
     else:
         outs = sorted(all_files_with_extension(group_path, '.out'))
         return testio.OutputFromFiles(outs)
@@ -167,18 +168,21 @@ def run_test(program,
              test_output: testio.TestOutput,
              timeout=None,
              timer=False) -> result.TestResult:
+    status = result.TestResult.Status.OK
     try:
+        program_input = test_input.next()
         run_time = time.time()
         run_result = subprocess.run(program,
-                                    stdin=test_input.next(),
+                                    input=program_input,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
+                                    text=True,
                                     check=True,
+                                    shell=True,
                                     timeout=timeout)
 
         run_time = time.time() - run_time
-        status = test_output.handle_output(
-            str(run_result.stdout, encoding="utf-8"))
+        status = test_output.handle_output(program_input, run_result.stdout)
 
         if timer:
             stderr = str(run_result.stderr, "ascii")
@@ -190,8 +194,6 @@ def run_test(program,
         return result.TestResult(result.TestResult.Status.RTE, run_time)
     except subprocess.TimeoutExpired:
         return result.TestResult(result.TestResult.Status.TLE, timeout)
-    except Exception as exception:
-        print(exception)
     return result.TestResult(status, run_time)
 
 
@@ -211,12 +213,10 @@ def config_from_file(filename):
     for key in common_config:
         default[key] = common_config
 
-    return config.TestConfig('', '', '', '', None, None)
-
 
 def config_from_args(args):
-    return config.TestConfig(args.p, args.d, args.g, args.b == 'true', args.t,
-                             args.timer, args.sha)
+    return config.TestConfig(args.p, args.d, args.g, args.v, args.b == 'true',
+                             args.t, args.timer, args.sha)
 
 
 def from_cli():

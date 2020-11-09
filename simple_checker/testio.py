@@ -2,13 +2,14 @@ import abc
 import io
 import difflib
 import hashlib
+import subprocess
 
 from simple_checker import result
 
 
 class TestInput(abc.ABC):
     @abc.abstractmethod
-    def next(self) -> io.TextIOWrapper:
+    def next(self) -> str:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -18,11 +19,15 @@ class TestInput(abc.ABC):
 
 class TestOutput(abc.ABC):
     @abc.abstractmethod
-    def handle_output(self, data: str) -> result.TestResult:
+    def handle_output(self, input_data: str,
+                      output_data: str) -> result.TestResult:
         raise NotImplementedError
 
     def summary(self) -> str:
         return ""
+
+    def summarize(self) -> None:
+        pass
 
 
 class InputFromFiles(TestInput):
@@ -36,7 +41,7 @@ class InputFromFiles(TestInput):
     def next(self):
         filename = self.ins[self.next_index]
         self.next_index += 1
-        return open(filename, "r")
+        return open(filename, "r").read()
 
     def current_name(self):
         return self.ins[self.next_index - 1]
@@ -54,7 +59,7 @@ class OutputFromFiles(TestOutput):
         self.outs = outs
         self.next_index = 0
 
-    def handle_output(self, data):
+    def handle_output(self, input_data, data):
         status = result.TestResult.Status.OK
         lines = [remove_whitespace(line) for line in data.split('\n')]
         lines = [line for line in lines if line]
@@ -77,14 +82,31 @@ class OutputFromFiles(TestOutput):
         pass
 
 
-class OutputChecksum(OutputFromFiles):
+class OutputChecksum(TestOutput):
     def __init__(self):
         self.checksum = hashlib.sha256()
 
-    def handle_output(self, data):
+    def handle_output(self, input_data, data):
         self.checksum.update(bytes(data, "ascii"))
         return result.TestResult.Status.OK
 
     def summarize(self):
         checksum = self.checksum.hexdigest()[:8]
         print(f"sha-256 checksum: {checksum}")
+
+
+class OutputToVerifier(TestOutput):
+    def __init__(self, verifier):
+        self.verifier = verifier
+
+    def handle_output(self, input_data, output_data) -> result.TestResult:
+        program_result = subprocess.run(self.verifier,
+                                        input=input_data + output_data,
+                                        stdout=subprocess.PIPE,
+                                        text=True,
+                                        shell=True,
+                                        check=True)
+
+        stdout = program_result.stdout.strip()
+        status = result.TestResult.Status[stdout]
+        return status

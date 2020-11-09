@@ -7,14 +7,20 @@ def get_parsed_args():
                         metavar='program',
                         default='./main',
                         help='path to the tested program')
+
     parser.add_argument('-d',
                         metavar='directory',
                         default='tests',
                         help='path to directory containing tests')
+
     parser.add_argument('-g',
                         metavar='groups',
                         nargs='+',
                         help="groups in given directory that should be tested")
+
+    parser.add_argument('-v',
+                        metavar='verifier',
+                        help="path to custom verifier")
     '''TODO:
     parser.add_argument('-G',
                         metavar='generator',

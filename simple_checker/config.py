@@ -1,12 +1,14 @@
 class TestConfig:
-    def __init__(self, program, test_dir, groups, break_on_error, timeout,
-                 timer, sha):
+    def __init__(self, program, test_dir, groups, verifier, break_on_error,
+                 timeout, timer, sha):
         self.program = program
         self.test_dir = test_dir
         if groups is not None:
             self.groups = groups
         else:
             self.groups = [".*"]
+
+        self.verifier = verifier
         self.break_on_error = break_on_error
         self.timeout = timeout
         self.timer = timer
