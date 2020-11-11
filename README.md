@@ -53,7 +53,7 @@ Currently available options are:
 | `-p`     | path to the program          | `./main`    | |
 | `-d`     | path to test directory       | `tests`     | | 
 | `-g`     | list of groups regexes       | `.*` (all)  | only top-level groups|
-| `-v`     | path to custom verifier      | `.*` (all)  | should output one of statuses on stdout|
+| `-v`     | path to custom verifier      | unset       | should output one of statuses on stdout|
 | `-b`     | break on error               | `true`      | |
 | `-t`     | timeout                      | unset       | |
 | `--timer`| read time from stderr        | unset       | |
