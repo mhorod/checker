@@ -10,11 +10,9 @@ import subprocess
 import sys
 import time
 
-import termcolor
 from console_progressbar import ProgressBar
 
 from simple_checker import cli, config, result, testio
-
 
 def run_tests(test_config: config.TestConfig) -> None:
     """Run tests with specification given in config"""
@@ -24,7 +22,7 @@ def run_tests(test_config: config.TestConfig) -> None:
     print()
 
     if not os.path.isdir(test_config.test_dir):
-        print_error(f"No directory `{test_config.test_dir}`")
+        cli.print_error(f"No directory `{test_config.test_dir}`")
         return
 
     if test_config.groups is None:
@@ -110,7 +108,7 @@ def run_test_group(group_path, test_config):
 
     test_count = test_input.test_count()
     if test_count == 0:
-        print_error("Error: empty group")
+        cli.print_error("Error: empty group")
         return
 
     test_progress = TestProgress(test_count)
@@ -122,7 +120,8 @@ def run_test_group(group_path, test_config):
 
         if test_result.status != result.TestResult.Status.OK:
             message = f"{test_result.status_name} on {test_input.current_name()}"
-            print(termcolor.colored(message, "red"))
+
+            cli.print_error(message)
             if test_config.break_on_error:
                 break
 
@@ -146,15 +145,6 @@ def test_output_from_config(group_path, test_config) -> testio.TestOutput:
     else:
         outs = sorted(all_files_with_extension(group_path, '.out'))
         return testio.OutputFromFiles(outs)
-
-
-def print_error(message):
-    print(termcolor.colored(message, "red"))
-
-
-def print_success(message):
-    print(termcolor.colored(message, "green"))
-
 
 def all_files_with_extension(directory, extension):
     for root, _, files in os.walk(directory):

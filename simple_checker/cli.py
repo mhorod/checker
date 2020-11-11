@@ -1,11 +1,29 @@
 import argparse
+import sys
+
+import termcolor
+
+
+def colored(text, color):
+    if 'win' in sys.platform:
+        # termcolor isn't supported on windows
+        return text
+    else:
+        return termcolor.colored(text, color)
+
+def print_error(message):
+    print(colored(message, "red"))
+
+
+def print_success(message):
+    print(colored(message, "green"))
 
 
 def get_parsed_args():
     parser = argparse.ArgumentParser(description='Simple test runner')
     parser.add_argument('-p',
                         metavar='program',
-                        default='./main',
+                        default='./main' if not 'win' in sys.platform else 'main',
                         help='path to the tested program')
 
     parser.add_argument('-d',

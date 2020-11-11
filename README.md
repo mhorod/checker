@@ -7,13 +7,16 @@ Python 3.6+
 `python` and `pip` should be available from command line.
 If that's not the case, update your `PATH` variable.
 
+Note: There might not be `python3` command available on Windows.
+However the script should be executable just by its name.
+
 ## Installation
 
 Simply run 
 ```
 python3 setup.py
 ```
-This will install dependencies. 
+This will install dependencies.
 
 In order to make the program work you have to put all the files in tested project directory.
 
@@ -45,14 +48,16 @@ The only naming requirement is that lexicographic sorting should preserve matchi
 Currently available options are:
 
 | Option  | Description                  | Default     | Notes |
-|:-------:|:----------------------------:|:-----------:|:---:|
-| `-h`    | display help                 | unset       | |
-| `-p`    | path to the program          | `./main`    | |
-| `-d`    | path to test directory       | `tests`     | | 
-| `-g`    | list of groups regexes       | unset (all) | |
-| `-b`    | break on error               | `true`      | |
-| `-t`    | timeout                      | unset       | |
-| `--sha` | calculate sha-256 of outputs | unset       | skips output verification |
+|:--------:|:----------------------------:|:-----------:|:---:|
+| `-h`     | display help                 | unset       | |
+| `-p`     | path to the program          | `./main`    | |
+| `-d`     | path to test directory       | `tests`     | | 
+| `-g`     | list of groups regexes       | `.*` (all)  | only top-level groups|
+| `-v`     | path to custom verifier      | `.*` (all)  | should output one of statuses on stdout|
+| `-b`     | break on error               | `true`      | |
+| `-t`     | timeout                      | unset       | |
+| `--timer`| read time from stderr        | unset       | |
+| `--sha`  | calculate sha-256 of outputs | unset       | skips output verification |
 
 ### Example
 Suppose you have the following test structure:
@@ -67,7 +72,7 @@ If you want to run program `./first` on all `tiny` tests with `0.5s` timeout:
 ```
 python3 run-tests.py -p ./first -g tiny.* -t 0.5
 ```
-If you have no access to a verified output and you want to check program's behavior
+If you have no access to a verified output and you want to check programs behavior
 you can run
 ```
 python3 run-tests.py -p ./first -g tiny.* -t 0.5 --sha

@@ -1,8 +1,7 @@
 import enum
 import statistics
 
-import termcolor
-
+from simple_checker import cli
 
 class TestResult:
     class Status(enum.IntEnum):
@@ -38,7 +37,7 @@ class GroupResult:
             f"{status} : {self.status_count[status]}/{self.test_count}"
             for status in self.status_count)
         color = "green" if self.status_count["OK"] == self.test_count else "red"
-        message = termcolor.colored(message, color)
+        message = cli.colored(message, color)
 
         return message + '\n' + str(TimeSummary(self.times))
 
