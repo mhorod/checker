@@ -127,7 +127,7 @@ def run_test_group(group_path, test_config):
         test_progress.update(i + 1)
 
     print(group_result.summary())
-    test_output.summarize()
+    print(test_output.summary())
     print()
 
 
@@ -197,9 +197,9 @@ def config_from_args(args) -> config.TestConfig:
     """Convert args read from cli to config"""
     return config.TestConfig(program=args.p,
                              test_dir=args.d,
-                             groups=args.g,
                              verifier=args.v,
                              break_on_error=args.b == 'true',
+                             groups=args.g or ['.*'],
                              timeout=args.t,
                              timer=args.timer,
                              sha=args.sha)

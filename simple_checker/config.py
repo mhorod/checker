@@ -2,7 +2,7 @@
 Configuration of the checker
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import sys
 import typing
 
@@ -29,11 +29,11 @@ class TestConfig:  # pylint: disable=R0902
     """
     program: str = PLATFORM.main
     test_dir: str = 'tests'
-    verifier: str
+    verifier: str = None
     break_on_error: bool = True
-    groups: typing.List[str] = ['.*']
+    groups: typing.List = field(default_factory=lambda: ['.*'])
     timer: bool = False
-    timeout: float
+    timeout: float = None
     sha: bool = False
 
     def group_string(self):

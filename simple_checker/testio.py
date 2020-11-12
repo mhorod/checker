@@ -97,8 +97,7 @@ class OutputChecksum(TestOutput):
         self.checksum.update(bytes(output_data, "ascii"))
         return result.TestResult.Status.OK
 
-    def summarize(self):
-        """Return formatted checksum"""
+    def summary(self):
         checksum = self.checksum.hexdigest()[:8]
         return f"sha-256 checksum: {checksum}"
 
