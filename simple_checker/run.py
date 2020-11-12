@@ -2,17 +2,16 @@
 Core of the checker used to run the tests
 """
 
-import configparser
 import os
 import re
 import shutil
 import subprocess
-import sys
 import time
 
 from console_progressbar import ProgressBar
 
 from simple_checker import cli, config, result, testio
+
 
 def run_tests(test_config: config.TestConfig) -> None:
     """Run tests with specification given in config"""
@@ -132,25 +131,31 @@ def run_test_group(group_path, test_config):
     print()
 
 
-def test_input_from_config(group_path, test_config) -> testio.TestInput:
+def test_input_from_config(group_path, test_config) -> testio.TestInput:  # pylint: disable=W0613
+    """Return TestInput object according to the config"""
     ins = sorted(all_files_with_extension(group_path, '.in'))
     return testio.InputFromFiles(ins)
 
 
 def test_output_from_config(group_path, test_config) -> testio.TestOutput:
+    """Return TestOutput object according to the config"""
+    handler = None
     if test_config.sha:
-        return testio.OutputChecksum()
+        handler = testio.OutputChecksum()
     elif test_config.verifier is not None:
-        return testio.OutputToVerifier(test_config.verifier)
+        handler = testio.OutputToVerifier(test_config.verifier)
     else:
         outs = sorted(all_files_with_extension(group_path, '.out'))
-        return testio.OutputFromFiles(outs)
+        handler = testio.OutputFromFiles(outs)
+    return handler
+
 
 def all_files_with_extension(directory, extension):
+    """Return paths to all files with given extension in directory"""
     for root, _, files in os.walk(directory):
-        for f in files:
-            if f.endswith(extension):
-                yield os.path.join(root, f)
+        for filename in files:
+            if filename.endswith(extension):
+                yield os.path.join(root, filename)
 
 
 def run_test(program,
@@ -158,6 +163,7 @@ def run_test(program,
              test_output: testio.TestOutput,
              timeout=None,
              timer=False) -> result.TestResult:
+    """Run a single test"""
     status = result.TestResult.Status.OK
     try:
         program_input = test_input.next()
@@ -187,34 +193,20 @@ def run_test(program,
     return result.TestResult(status, run_time)
 
 
-def config_from_file(filename):
-    print("Currently not supported")
-    sys.exit(0)
-    config_parser = configparser.ConfigParser()
-    config_parser.read(filename)
-    default = {
-        'program': './main',
-        'test_dir': 'tests',
-        'groups': None,
-    }
-    if "TestConfig" not in config_parser:
-        print_error("Invalid config")
-    common_config = config_parser["common"]
-    for key in common_config:
-        default[key] = common_config
-
-
-def config_from_args(args):
-    return config.TestConfig(args.p, args.d, args.g, args.v, args.b == 'true',
-                             args.t, args.timer, args.sha)
+def config_from_args(args) -> config.TestConfig:
+    """Convert args read from cli to config"""
+    return config.TestConfig(program=args.p,
+                             test_dir=args.d,
+                             groups=args.g,
+                             verifier=args.v,
+                             break_on_error=args.b == 'true',
+                             timeout=args.t,
+                             timer=args.timer,
+                             sha=args.sha)
 
 
 def from_cli():
+    """Run tests with configuration read from cli"""
     args = cli.get_parsed_args()
-    #if args.c == None:
     test_config = config_from_args(args)
-    #else:
-    #    print(f"Loading config from file {args.c}")
-    #    print("Input flags will be ignored")
-    #    config = config_from_file(args.c)
     run_tests(test_config)

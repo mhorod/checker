@@ -1,10 +1,19 @@
+"""
+Data that results from running tests
+"""
+
+from dataclasses import dataclass
 import enum
 import statistics
 
 from simple_checker import cli
 
+
+@dataclass
 class TestResult:
+    """Result of a single test"""
     class Status(enum.IntEnum):
+        """Status of run program"""
         OK = 0
         ANS = 1
         TLE = 2
@@ -18,21 +27,25 @@ class TestResult:
 
     @property
     def status_name(self) -> str:
+        """Returns string name of status"""
         return TestResult.status_names[self.status]
 
 
 class GroupResult:
+    """Result of a whole group"""
     def __init__(self):
         self.times = []
         self.status_count = {status: 0 for status in TestResult.status_names}
         self.test_count = 0
 
     def update(self, test_result):
+        """Add test_result to this groups results"""
         self.times.append(test_result.time)
         self.status_count[test_result.status_name] += 1
         self.test_count += 1
 
-    def summary(self):
+    def summary(self) -> str:
+        """Returns string summarizing whole group"""
         message = "\n".join(
             f"{status} : {self.status_count[status]}/{self.test_count}"
             for status in self.status_count)
@@ -42,7 +55,9 @@ class GroupResult:
         return message + '\n' + str(TimeSummary(self.times))
 
 
+@dataclass
 class TimeSummary:
+    """Run time statistics"""
     def __init__(self, times):
         mean_time = statistics.fmean(times)
         max_time = max(times)

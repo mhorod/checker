@@ -1,3 +1,6 @@
+"""
+Command Line Interface of the checker
+"""
 import argparse
 import sys
 
@@ -5,26 +8,32 @@ import termcolor
 
 
 def colored(text, color):
-    if 'win' in sys.platform:
-        # termcolor isn't supported on windows
-        return text
-    else:
-        return termcolor.colored(text, color)
+    """Returns string with colored text depending on platform"""
+    colored_text = text
+    if 'win' not in sys.platform:
+        # termcolor works only on linux
+        colored_text = termcolor.colored(text, color)
+    return colored_text
+
 
 def print_error(message):
+    """Prints message red colored"""
     print(colored(message, "red"))
 
 
 def print_success(message):
+    """Prints message green colored"""
     print(colored(message, "green"))
 
 
 def get_parsed_args():
+    """Parses arguments from stdin"""
     parser = argparse.ArgumentParser(description='Simple test runner')
-    parser.add_argument('-p',
-                        metavar='program',
-                        default='./main' if not 'win' in sys.platform else 'main',
-                        help='path to the tested program')
+    parser.add_argument(
+        '-p',
+        metavar='program',
+        default='./main' if 'win' not in sys.platform else 'main',
+        help='path to the tested program')
 
     parser.add_argument('-d',
                         metavar='directory',
@@ -39,16 +48,6 @@ def get_parsed_args():
     parser.add_argument('-v',
                         metavar='verifier',
                         help="path to custom verifier")
-    '''TODO:
-    parser.add_argument('-G',
-                        metavar='generator',
-                        help="path to test generator")
-
-    parser.add_argument('-c',
-                        metavar='config',
-                        help='path to config file for custom checking')
-
-    '''
 
     parser.add_argument('-b',
                         metavar='break',

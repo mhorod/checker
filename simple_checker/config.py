@@ -1,34 +1,53 @@
-class TestConfig:
-    def __init__(self, program, test_dir, groups, verifier, break_on_error,
-                 timeout, timer, sha):
-        self.program = program
-        self.test_dir = test_dir
-        if groups is not None:
-            self.groups = groups
-        else:
-            self.groups = [".*"]
+"""
+Configuration of the checker
+"""
 
-        self.verifier = verifier
-        self.break_on_error = break_on_error
-        self.timeout = timeout
-        self.timer = timer
-        self.sha = sha
+from dataclasses import dataclass
+import sys
+import typing
+
+
+@dataclass
+class Windows:
+    """Windows specific defaults"""
+    main: str = 'main'
+
+
+@dataclass
+class Linux:
+    """Linux specific defaults"""
+    main: str = './main'
+
+
+PLATFORM = Linux() if 'win' not in sys.platform else Windows()
+
+
+@dataclass
+class TestConfig:  # pylint: disable=R0902
+    """
+    Global configuration
+    """
+    program: str = PLATFORM.main
+    test_dir: str = 'tests'
+    verifier: str
+    break_on_error: bool = True
+    groups: typing.List[str] = ['.*']
+    timer: bool = False
+    timeout: float
+    sha: bool = False
 
     def group_string(self):
-        if self.groups is None:
-            result = "all"
-        else:
-            result = " ".join(self.groups)
-        return result
+        """Return string of groups"""
+        return " ".join(self.groups)
 
     def timeout_string(self):
-        if self.timeout is None:
-            return "unset"
-        else:
-            return f"{self.timeout}s"
+        """Return formatted timeout"""
+        result = "unset"
+        if self.timeout is not None:
+            result = f"{self.timeout}s"
+        return result
 
     def __str__(self):
-
         result = (f"program: {self.program}\n" +
                   f"test_dir: {self.test_dir}\n" +
                   f"groups: {self.group_string()}\n" +
