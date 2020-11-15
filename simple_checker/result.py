@@ -61,7 +61,11 @@ class TimeSummary:
     def __init__(self, times):
         mean_time = statistics.fmean(times)
         max_time = max(times)
-        time_stdev = statistics.stdev(times)
+        if len(times) > 1:
+            time_stdev = statistics.stdev(times)
+        else:
+            time_stdev = 0
+
         self.mean_time = round(mean_time, 4)
         self.max_time = round(max_time, 4)
         self.time_stdev = round(time_stdev, 4)
