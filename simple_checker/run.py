@@ -118,7 +118,7 @@ def run_test_group(group_path, test_config):
         group_result.update(test_result)
 
         if test_result.status != result.TestResult.Status.OK:
-            message = f"{test_result.status_name} on {test_input.current_name()}"
+            message = f"\n{test_result.status_name} on {test_input.current_name()}"
 
             cli.print_error(message)
             if test_config.break_on_error:
@@ -181,7 +181,7 @@ def run_test(program,
         status = test_output.handle_output(program_input, run_result.stdout)
 
         if timer:
-            stderr = str(run_result.stderr, "ascii")
+            stderr = str(run_result.stderr)
             for line in stderr.split('\n'):
                 if "Time:" in line:
                     run_time = float(line.split(' ')[1])
