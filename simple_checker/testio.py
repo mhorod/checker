@@ -78,7 +78,7 @@ class OutputFromFiles(TestOutput):
             remove_whitespace(line)
             for line in open(self.outs[self.next_index]).readlines()
         ]
-
+        correct_lines = [line for line in correct_lines if line]
         diff = difflib.unified_diff(lines, correct_lines)
         for line in diff:
             if line:
