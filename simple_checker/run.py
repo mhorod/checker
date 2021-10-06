@@ -39,7 +39,7 @@ def run_tests(test_config: config.TestConfig) -> None:
 
 def is_final_group(group_dir) -> bool:
     """Checks if group does not contain any directories other than in or out"""
-    dirs = os.listdir(group_dir)
+    dirs = [path for path in os.listdir(group_dir) if os.path.isdir(path)]
     if len(dirs) == 0 or 'in' in dirs:
         return True
     return False
