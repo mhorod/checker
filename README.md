@@ -59,7 +59,10 @@ Currently available options are:
 | `--timer`| read time from stderr        | unset       | |
 | `--sha`  | calculate sha-256 of outputs | unset       | skips output verification |
 
-### Example
+
+
+
+### Example of usage
 Suppose you have the following test structure:
 ```
 tests/
@@ -78,6 +81,33 @@ you can run
 python3 run-tests.py -p ./first -g tiny.* -t 0.5 --sha
 ```
 The checksum can be then used to compare all answers at once without the need to generate (possibly large) output.
+
+### Using custom verifier
+The verifier is fed with input concatenated with program's output
+
+e.g.
+program's input:
+```
+1
+3 1 2 3
+```
+program's output:
+```
+6
+```
+
+The verifier receives on stdin:
+```
+1
+3 1 2 3
+6
+```
+
+stdout should only contain one of four possible statuses:
+- `OK`
+- `ANS`
+- `TLE`
+- `RTE`
 
 ## License
 Distributed under MIT license.
