@@ -22,6 +22,18 @@ class Linux:
 PLATFORM = Linux() if 'win' not in sys.platform else Windows()
 
 
+class Extensions:
+    """List containing possible extensions"""
+    def __init__(self, extensions):
+        self.extensions = extensions
+
+    def __or__(self, other):
+        return Extensions(self.extensions + other.extensions)
+
+    def __iter__(self):
+        return self.extensions.__iter__()
+
+
 @dataclass
 class TestConfig:  # pylint: disable=R0902
     """
@@ -35,6 +47,7 @@ class TestConfig:  # pylint: disable=R0902
     timer: bool = False
     timeout: float = None
     sha: bool = False
+    correct_answer_extensions: Extensions = Extensions(['.ok', '.out'])
 
     def group_string(self):
         """Return string of groups"""
@@ -48,11 +61,13 @@ class TestConfig:  # pylint: disable=R0902
         return result
 
     def __str__(self):
-        result = (f"program: {self.program}\n" +
-                  f"test_dir: {self.test_dir}\n" +
-                  f"groups: {self.group_string()}\n" +
-                  f"break on error: {str(self.break_on_error)}\n" +
-                  f"timeout: {self.timeout_string()}")
+        result = (
+            f"program: {self.program}\n" + f"test_dir: {self.test_dir}\n" +
+            f"groups: {self.group_string()}\n" +
+            f"break on error: {str(self.break_on_error)}\n" +
+            f"timeout: {self.timeout_string()}\n" +
+            f"correct answer extensions: {' '.join(self.correct_answer_extensions)}"
+        )
 
         if self.sha:
             result += '\n' + "Calculating SHA-256 instead of veryfying."

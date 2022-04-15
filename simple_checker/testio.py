@@ -50,7 +50,8 @@ class InputFromFiles(TestInput):
     def next(self):
         filename = self.ins[self.next_index]
         self.next_index += 1
-        return open(filename, "r").read()
+        with open(filename, "r", encoding="utf-8") as next_file:
+            return next_file.read()
 
     def current_name(self):
         return self.ins[self.next_index - 1]
@@ -74,10 +75,12 @@ class OutputFromFiles(TestOutput):
         status = result.TestResult.Status.OK
         lines = [remove_whitespace(line) for line in output_data.split('\n')]
         lines = [line for line in lines if line]
-        correct_lines = [
-            remove_whitespace(line)
-            for line in open(self.outs[self.next_index]).readlines()
-        ]
+        with open(self.outs[self.next_index], "r",
+                  encoding="utf-8") as correct_answer_file:
+            correct_lines = [
+                remove_whitespace(line)
+                for line in correct_answer_file.readlines()
+            ]
         correct_lines = [line for line in correct_lines if line]
         diff = difflib.unified_diff(lines, correct_lines)
         for line in diff:

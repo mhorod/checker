@@ -39,7 +39,10 @@ def run_tests(test_config: config.TestConfig) -> None:
 
 def is_final_group(group_dir) -> bool:
     """Checks if group does not contain any directories other than in or out"""
-    dirs = [path for path in os.listdir(group_dir) if os.path.isdir(path)]
+    dirs = [
+        path for path in os.listdir(group_dir)
+        if os.path.isdir(os.path.join(group_dir, path))
+    ]
     if len(dirs) == 0 or 'in' in dirs:
         return True
     return False
@@ -133,11 +136,13 @@ def run_test_group(group_path, test_config):
 
 def test_input_from_config(group_path, test_config) -> testio.TestInput:  # pylint: disable=W0613
     """Return TestInput object according to the config"""
-    ins = sorted(all_files_with_extension(group_path, '.in'))
+    ins = sorted(
+        all_files_with_extensions(group_path, config.Extensions(['.in'])))
     return testio.InputFromFiles(ins)
 
 
-def test_output_from_config(group_path, test_config) -> testio.TestOutput:
+def test_output_from_config(
+        group_path, test_config: config.TestConfig) -> testio.TestOutput:
     """Return TestOutput object according to the config"""
     handler = None
     if test_config.sha:
@@ -145,17 +150,20 @@ def test_output_from_config(group_path, test_config) -> testio.TestOutput:
     elif test_config.verifier is not None:
         handler = testio.OutputToVerifier(test_config.verifier)
     else:
-        outs = sorted(all_files_with_extension(group_path, '.out'))
+        outs = sorted(
+            all_files_with_extensions(group_path,
+                                      test_config.correct_answer_extensions))
         handler = testio.OutputFromFiles(outs)
     return handler
 
 
-def all_files_with_extension(directory, extension):
+def all_files_with_extensions(path, extensions: config.Extensions):
     """Return paths to all files with given extension in directory"""
-    for root, _, files in os.walk(directory):
+    for root, _, files in os.walk(path):
         for filename in files:
-            if filename.endswith(extension):
-                yield os.path.join(root, filename)
+            for extension in extensions:
+                if filename.endswith(extension):
+                    yield os.path.join(root, filename)
 
 
 def run_test(program,
